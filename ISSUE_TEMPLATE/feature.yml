@@ -1,0 +1,20 @@
+name: Feature
+description: Algo novo ou uma melhoria no produto
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problema
+    attributes:
+      label: Problema
+      description: Quem sofre com isso hoje e por quê. Sem solução ainda.
+    validations:
+      required: true
+  - type: textarea
+    id: proposta
+    attributes:
+      label: Proposta
+  - type: textarea
+    id: pronto
+    attributes:
+      label: Pronto quando
+      placeholder: "- [ ] ..."
