@@ -1,0 +1,40 @@
+name: Release fecha as issues (padrão da org)
+
+# PR de release (develop → main): acrescenta ao corpo um "Closes #N" por issue
+# que os PRs mergeados na develop desde a main fecham. A main é a branch
+# padrão, e só PR que entra nela fecha issue. Lógica e testes em
+# scripts/release-closes.mjs. Editar o corpo com o GITHUB_TOKEN não dispara
+# workflow de novo, então não há loop.
+#
+# No produto:
+#   on: { pull_request: { types: [opened, synchronize, reopened], branches: [main] } }
+#   jobs:
+#     closes:
+#       if: github.event.pull_request.head.ref == 'develop'
+#       permissions: { contents: read, pull-requests: write }
+#       uses: RZ4-Tech/.github/.github/workflows/release-closes.yml@<sha>
+
+on:
+  workflow_call:
+
+jobs:
+  closes:
+    name: Closes das issues do release
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .rz4-padrao
+      - name: Atualiza o corpo do PR
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          BASE: ${{ github.event.pull_request.base.ref }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: node .rz4-padrao/scripts/release-closes.mjs --pr "$PR_NUMBER"

@@ -1,0 +1,44 @@
+name: Auto PR (padrão da org)
+
+# Abre o PR da branch de trabalho para a develop no primeiro push. Branch de
+# issue (<tipo>/<N>-<slug>) já nasce com "Closes #N" — é dali que o
+# release-closes monta a lista do release. Lógica em scripts/auto-pr.mjs.
+#
+# No produto (.github/workflows/auto-pr.yml):
+#   on:
+#     push:
+#       branches-ignore: [main, develop, "dependabot/**"]
+#   jobs:
+#     pr:
+#       permissions: { contents: read, pull-requests: write }
+#       uses: RZ4-Tech/.github/.github/workflows/auto-pr.yml@<sha>
+
+on:
+  workflow_call:
+    inputs:
+      base:
+        description: Branch de destino do PR
+        type: string
+        default: develop
+
+jobs:
+  pr:
+    name: PR para a develop
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      # O script vem do .github NO MESMO SHA do workflow que o produto fixou.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .rz4-padrao
+      - name: Abre o PR se ainda não existe
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          BASE: ${{ inputs.base }}
+          BRANCH: ${{ github.ref_name }}
+        run: node .rz4-padrao/scripts/auto-pr.mjs "$BRANCH"
