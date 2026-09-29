@@ -1,0 +1,45 @@
+name: npm audit (padrão da org)
+
+# Só reporta: tabela no resumo do job e anotação para high/critical. Nunca
+# falha. npm audit lê só o package-lock.json, sem instalar nada.
+#
+# No produto:
+#   jobs:
+#     audit:
+#       uses: RZ4-Tech/.github/.github/workflows/audit.yml@<sha>
+#       with: { pastas: "frontend backend e2e" }
+
+on:
+  workflow_call:
+    inputs:
+      pastas:
+        description: Pastas com package-lock.json, separadas por espaço ("." = raiz)
+        type: string
+        required: true
+
+jobs:
+  audit:
+    name: npm audit (só reporta)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .rz4-padrao
+      - name: npm audit
+        env:
+          PASTAS: ${{ inputs.pastas }}
+        run: |
+          for d in $PASTAS; do
+            nome="$(echo "$d" | tr '/.' '__')"
+            (cd "$d" && npm audit --json > "$GITHUB_WORKSPACE/audit-$nome.json") || true
+          done
+      - name: Resumo
+        env:
+          PASTAS: ${{ inputs.pastas }}
+        run: node .rz4-padrao/scripts/audit-summary.mjs $(for d in $PASTAS; do echo "$d" | tr '/.' '__'; done)

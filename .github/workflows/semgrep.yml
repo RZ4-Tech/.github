@@ -1,0 +1,59 @@
+name: Semgrep (padrão da org)
+
+# Só reporta. Com base (PR, push na develop/main ou merge-base da branch com a
+# develop), mostra só o que foi introduzido desde ela; sem base (execução
+# agendada ou manual), varre o repositório inteiro. Exclusões no .semgrepignore
+# do produto. Roda por `docker run`: a imagem é Alpine e actions JS não
+# funcionam dentro dela.
+#
+# No produto (job dentro do ci.yml):
+#   semgrep:
+#     needs: changes
+#     if: needs.changes.outputs.semgrep == 'true'
+#     uses: RZ4-Tech/.github/.github/workflows/semgrep.yml@<sha>
+#     with:
+#       base: ${{ needs.changes.outputs.base }}   # vazio = varredura completa
+
+on:
+  workflow_call:
+    inputs:
+      base:
+        description: Commit de comparação. Vazio = varredura completa.
+        type: string
+        default: ""
+      configs:
+        description: Regras do Semgrep, separadas por espaço
+        type: string
+        default: "p/owasp-top-ten p/typescript p/react p/nodejs p/secrets"
+
+jobs:
+  semgrep:
+    name: Semgrep (só reporta)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # --baseline-commit precisa do histórico
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .rz4-padrao
+      - name: Semgrep
+        env:
+          BASE: ${{ inputs.base }}
+          CONFIGS: ${{ inputs.configs }}
+        run: |
+          set -- --metrics=off --exclude .rz4-padrao
+          for c in $CONFIGS; do set -- "$@" --config "$c"; done
+          [ -n "$BASE" ] && set -- "$@" --baseline-commit "$BASE"
+          docker run --rm -v "$PWD:/src" -w /src semgrep/semgrep:1.177.0 sh -c \
+            'git config --global --add safe.directory /src && semgrep scan "$@" --json -o semgrep.json' \
+            _ "$@" || true
+      - name: Resumo
+        env:
+          BASE: ${{ inputs.base }}
+        run: python3 .rz4-padrao/scripts/semgrep-summary.py semgrep.json
