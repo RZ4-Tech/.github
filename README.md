@@ -15,7 +15,7 @@ E os **workflows reaproveitáveis** que todo produto usa (RZ4-Tech/rz4-hq#1):
 | `.github/workflows/audit.yml` | `npm audit` das pastas indicadas. Só reporta. | Job do `ci.yml` |
 | `.github/workflows/semgrep.yml` | Semgrep só do que mudou desde a base, ou varredura completa sem base. Só reporta. | Job do `ci.yml` |
 
-Os scripts ficam em `scripts/` e têm testes (`node --test scripts/`, rodado por
+Os scripts ficam em `scripts/` e têm testes (`node --test scripts/*.test.mjs`, rodado por
 `testes.yml`). Cada workflow faz checkout deste repo **no mesmo SHA** em que o
 produto o fixou (`job.workflow_sha`), então workflow e script nunca ficam em
 versões diferentes.

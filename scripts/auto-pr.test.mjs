@@ -1,4 +1,4 @@
-// node --test scripts/
+// node --test scripts/*.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { issueDaBranch, corpoDoPr, tituloDoPr } from "./auto-pr.mjs";
